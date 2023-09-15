@@ -1,13 +1,39 @@
+diff --git a/src/Makefile b/src/Makefile
+index 224d21e7..5939e246 100644
+--- a/src/Makefile
++++ b/src/Makefile
+@@ -92,7 +92,7 @@ XCFLAGS=
+ # executable. But please consider that the FFI library is compiled-in,
+ # but NOT loaded by default. It only allocates any memory, if you actually
+ # make use of it.
+-#XCFLAGS+= -DLUAJIT_DISABLE_FFI
++XCFLAGS+= -DLUAJIT_DISABLE_FFI
+ #
+ # Features from Lua 5.2 that are unlikely to break existing code are
+ # enabled by default. Some other features that *might* break some existing
+@@ -110,7 +110,7 @@ XCFLAGS=
+ #XCFLAGS+= -DLUAJIT_NUMMODE=2
+ #
+ # Disable LJ_GC64 mode for x64.
+-#XCFLAGS+= -DLUAJIT_DISABLE_GC64
++XCFLAGS+= -DLUAJIT_DISABLE_GC64
+ #
+ ##############################################################################
+ 
 diff --git a/src/luaconf.h b/src/luaconf.h
-index f47f0680..27ddba30 100644
+index f47f0680..841b8773 100644
 --- a/src/luaconf.h
 +++ b/src/luaconf.h
-@@ -86,7 +86,7 @@
+@@ -86,10 +86,10 @@
  #define LUA_QS		LUA_QL("%s")
  
  /* Various tunables. */
 -#define LUAI_MAXSTACK	65500	/* Max. # of stack slots for a thread (<64K). */
-+#define LUAI_MAXSTACK	33536000	/* Max. # of stack slots for a thread (<64K). */
++#define LUAI_MAXSTACK	67072000	/* Max. # of stack slots for a thread (<64K). */
  #define LUAI_MAXCSTACK	8000	/* Max. # of stack slots for a C func (<10K). */
  #define LUAI_GCPAUSE	200	/* Pause GC until memory is at 200%. */
- #define LUAI_GCMUL	200	/* Run GC at 200% of allocation speed. */
+-#define LUAI_GCMUL	200	/* Run GC at 200% of allocation speed. */
++#define LUAI_GCMUL	1000	/* Run GC at 200% of allocation speed. */
+ #define LUA_MAXCAPTURES	32	/* Max. pattern captures. */
+ 
+ /* Configuration for the frontend (the luajit executable). */

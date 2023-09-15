@@ -3,16 +3,17 @@ use std::{error::Error, fmt::Write};
 
 const PRELUDE: &str = r#"
 -- Prelude
-local bit = require "bit"
-local __to_bit = bit.tobit
+local __to_bit = require "bit".tobit
 
 local __buffer = require "string.buffer".new(1024)
+local __buffer_put = __buffer.put
+local __buffer_tostring = __buffer.tostring
 
 getmetatable('').__add = function(lhs, rhs) return tostring(lhs) .. tostring(rhs) end
 
 local __print = function(x)
-    __buffer:put(x)
-    __buffer:put "\n"
+    __buffer_put(__buffer, x)
+    __buffer_put(__buffer, "\n")
     return x
 end
 
@@ -34,7 +35,7 @@ const POSTLUDE: &str = r#"
 end
 -- end code
 
-return __buffer:tostring()
+return __buffer_tostring(__buffer)
 "#;
 
 fn anotate(term: &mut Term, last: bool) -> bool {
@@ -675,30 +676,11 @@ fn generate_term(
                 writeln!(code, " then")?;
             }
 
-            // if !c.last {
             generate_term(code, &c.then, temps + 1, bind.clone())?;
             writeln!(code, " else")?;
             generate_term(code, &c.otherwise, temps + 1, bind)?;
             writeln!(code, " end")?;
-            // } else {
-            //     if !c.then.binds {
-            //         write!(code, " return ")?;
-            //         generate_free_term(code, &c.then)?;
-            //     } else {
-            //         generate_term(code, &c.then, temps + 1, bind.clone())?;
-            //     }
 
-            //     writeln!(code, " else")?;
-
-            //     if !c.otherwise.binds {
-            //         write!(code, " return ")?;
-            //         generate_free_term(code, &c.otherwise)?;
-            //     } else {
-            //         generate_term(code, &c.otherwise, temps + 1, bind)?;
-            //     }
-
-            //     writeln!(code, " end")?;
-            // }
             Ok(())
         }
 

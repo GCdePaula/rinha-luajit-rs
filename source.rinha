@@ -1,11 +1,3 @@
-let sum_rec = fn (n) => {
-    if (n == 0) {
-      0
-    } else {
-      n + sum_rec(n-1)
-    }
-};
-
 let sum_cps = fn (n, cont) => {
     if (n == 0) {
       cont(0)
@@ -20,5 +12,4 @@ let sum = fn (n) => {
 };
 
 
-let _ = print(sum_rec(1000000));
 print(sum(10000000))
