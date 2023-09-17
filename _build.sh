@@ -1,3 +1,3 @@
 #!/bin/bash
 
-docker build -t rinha:latest .
+docker build -t rinha-luajit-rs:latest .
