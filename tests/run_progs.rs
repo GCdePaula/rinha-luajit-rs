@@ -1,4 +1,4 @@
-use rinha_de_compiler::{generate::generate, luajit};
+use rinha_luajit_rs::{generate::generate, luajit};
 
 #[test]
 fn fib() {
