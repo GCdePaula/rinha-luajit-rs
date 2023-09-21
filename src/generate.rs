@@ -12,7 +12,11 @@ local __buffer_tostring = __buffer.tostring
 getmetatable('').__add = function(lhs, rhs) return tostring(lhs) .. tostring(rhs) end
 
 local __print = function(x)
-    __buffer_put(__buffer, x)
+    if type(x) == "function" then
+        __buffer_put(__buffer, "<#closure>")
+    else
+        __buffer_put(__buffer, x)
+    end
     __buffer_put(__buffer, "\n")
     return x
 end
@@ -463,7 +467,7 @@ fn generate_free_term(code: &mut String, term: &Term) -> Result<(), Box<dyn Erro
         Kind::Print(p) => {
             write!(code, "__print(")?;
             generate_free_term(code, &p.value)?;
-            writeln!(code, ")")?;
+            write!(code, ")")?;
             Ok(())
         }
 
@@ -687,7 +691,7 @@ fn generate_term(
         Kind::Print(p) => {
             let arg = generate_binding(code, temps)?;
             generate_term(code, &p.value, temps + 1, arg.clone())?;
-            writeln!(code, "__print({})", arg)?;
+            write!(code, "__print({})", arg)?;
             close_scope(code)?;
             Ok(())
         }

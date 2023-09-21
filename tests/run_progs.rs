@@ -81,3 +81,11 @@ fn cps2() {
     let ret = luajit::run(&program).expect("run error");
     assert_eq!("1784293664\n-2004260032\n", ret);
 }
+
+#[test]
+fn closure() {
+    let path = "./tests/test-jsons/closure.rinha.json";
+    let program = generate(path).expect("generation error");
+    let ret = luajit::run(&program).expect("run error");
+    assert_eq!("<#closure>\n", ret);
+}
