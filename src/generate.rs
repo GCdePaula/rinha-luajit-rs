@@ -11,12 +11,22 @@ local __buffer_tostring = __buffer.tostring
 
 getmetatable('').__add = function(lhs, rhs) return tostring(lhs) .. tostring(rhs) end
 
-local __print = function(x)
+local function __print0(x)
     if type(x) == "function" then
         __buffer_put(__buffer, "<#closure>")
+    elseif type(x) == "table" then
+        __buffer_put(__buffer, "(")
+        __print0(x[1])
+        __buffer_put(__buffer, ", ")
+        __print0(x[2])
+        __buffer_put(__buffer, ")")
     else
         __buffer_put(__buffer, x)
     end
+end
+
+local function __print(x)
+    __print0(x)
     __buffer_put(__buffer, "\n")
     return x
 end
