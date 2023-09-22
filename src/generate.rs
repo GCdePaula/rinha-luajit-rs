@@ -3,17 +3,31 @@ use std::{error::Error, fmt::Write};
 
 const PRELUDE: &str = r#"
 -- Prelude
-local __to_bit = require "bit".tobit
+-- local __to_bit = require "bit".tobit
 
 local __buffer = require "string.buffer".new(1024)
 local __buffer_put = __buffer.put
 local __buffer_tostring = __buffer.tostring
 
-getmetatable('').__add = function(lhs, rhs) return tostring(lhs) .. tostring(rhs) end
+
+local __new_str
+
+local __str_mt = {
+    __add = function(lhs, rhs) return __new_str(tostring(lhs) .. tostring(rhs)) end,
+    __tostring = function(x) return x[1] end,
+}
+
+__new_str = function(s)
+    local t = {s}
+    setmetatable(t, __str_mt)
+    return t
+end
 
 local function __print0(x)
     if type(x) == "function" then
         __buffer_put(__buffer, "<#closure>")
+    elseif getmetatable(x) == __str_mt then
+        __buffer_put(__buffer, x)
     elseif type(x) == "table" then
         __buffer_put(__buffer, "(")
         __print0(x[1])
@@ -181,27 +195,27 @@ fn generate_infix(
 fn generate_free_bin_op(code: &mut String, bin_op: &Binary) -> Result<(), Box<dyn Error>> {
     match bin_op.op {
         BinaryOp::Add => {
-            write!(code, "__to_bit(")?;
+            // write!(code, "__to_bit(")?;
             generate_free_term(code, &bin_op.lhs)?;
             write!(code, " + ")?;
             generate_free_term(code, &bin_op.rhs)?;
-            write!(code, ") ")?;
+            // write!(code, ") ")?;
 
             Ok(())
         }
 
         BinaryOp::Sub => {
-            write!(code, "__to_bit(")?;
+            // write!(code, "__to_bit(")?;
             generate_free_term(code, &bin_op.lhs)?;
             write!(code, " - ")?;
             generate_free_term(code, &bin_op.rhs)?;
-            write!(code, ") ")?;
+            // write!(code, ") ")?;
 
             Ok(())
         }
 
         BinaryOp::Mul => {
-            write!(code, "__to_bit(")?;
+            // write!(code, "__to_bit(")?;
             generate_free_term(code, &bin_op.lhs)?;
             write!(code, " * ")?;
             generate_free_term(code, &bin_op.rhs)?;
@@ -210,11 +224,13 @@ fn generate_free_bin_op(code: &mut String, bin_op: &Binary) -> Result<(), Box<dy
         }
 
         BinaryOp::Div => {
-            write!(code, "__to_bit(__floor(")?;
+            // write!(code, "__to_bit(__floor(")?;
+            write!(code, "__floor(")?;
             generate_free_term(code, &bin_op.lhs)?;
-            write!(code, ",")?;
+            write!(code, "/")?;
             generate_free_term(code, &bin_op.rhs)?;
-            write!(code, ")) ")?;
+            // write!(code, ")) ")?;
+            write!(code, ") ")?;
             Ok(())
         }
 
@@ -283,12 +299,14 @@ fn generate_bin_op(
             if bin_op.rhs.binds {
                 let rhs = generate_binding(code, temps)?;
                 generate_term(code, &bin_op.rhs, temps + 1, rhs.clone())?;
-                writeln!(code, "{} = __to_bit({} + {})", bind, lhs, rhs)?;
+                // writeln!(code, "{} = __to_bit({} + {})", bind, lhs, rhs)?;
+                writeln!(code, "{} = {} + {}", bind, lhs, rhs)?;
                 close_scope(code)?;
             } else {
-                write!(code, "{} = __to_bit({} + ", bind, lhs)?;
+                // write!(code, "{} = __to_bit({} + ", bind, lhs)?;
+                write!(code, "{} = {} + ", bind, lhs)?;
                 generate_free_term(code, &bin_op.rhs)?;
-                writeln!(code, ")")?;
+                // writeln!(code, ")")?;
             }
 
             close_scope(code)?;
@@ -303,12 +321,14 @@ fn generate_bin_op(
             if bin_op.rhs.binds {
                 let rhs = generate_binding(code, temps)?;
                 generate_term(code, &bin_op.rhs, temps + 1, rhs.clone())?;
-                writeln!(code, "{} = __to_bit({} - {})", bind, lhs, rhs)?;
+                // writeln!(code, "{} = __to_bit({} - {})", bind, lhs, rhs)?;
+                writeln!(code, "{} = {} - {}", bind, lhs, rhs)?;
                 close_scope(code)?;
             } else {
-                write!(code, "{} = __to_bit({} - ", bind, lhs)?;
+                // write!(code, "{} = __to_bit({} - ", bind, lhs)?;
+                write!(code, "{} = {} - ", bind, lhs)?;
                 generate_free_term(code, &bin_op.rhs)?;
-                writeln!(code, ")")?;
+                // writeln!(code, ")")?;
             }
 
             close_scope(code)?;
@@ -323,12 +343,14 @@ fn generate_bin_op(
             if bin_op.rhs.binds {
                 let rhs = generate_binding(code, temps)?;
                 generate_term(code, &bin_op.rhs, temps + 1, rhs.clone())?;
-                writeln!(code, "{} = __to_bit({} * {})", bind, lhs, rhs)?;
+                // writeln!(code, "{} = __to_bit({} * {})", bind, lhs, rhs)?;
+                writeln!(code, "{} = {} * {}", bind, lhs, rhs)?;
                 close_scope(code)?;
             } else {
-                write!(code, "{} = __to_bit({} * ", bind, lhs)?;
+                // write!(code, "{} = __to_bit({} * ", bind, lhs)?;
+                write!(code, "{} = {} * ", bind, lhs)?;
                 generate_free_term(code, &bin_op.rhs)?;
-                writeln!(code, ")")?;
+                // writeln!(code, ")")?;
             }
 
             close_scope(code)?;
@@ -343,12 +365,15 @@ fn generate_bin_op(
             if bin_op.rhs.binds {
                 let rhs = generate_binding(code, temps)?;
                 generate_term(code, &bin_op.rhs, temps + 1, rhs.clone())?;
-                writeln!(code, "{} = __to_bit(__floor({} / {}))", bind, lhs, rhs)?;
+                // writeln!(code, "{} = __to_bit(__floor({} / {}))", bind, lhs, rhs)?;
+                writeln!(code, "{} = __floor({} / {}))", bind, lhs, rhs)?;
                 close_scope(code)?;
             } else {
-                write!(code, "{} = __to_bit(__floor({} / ", bind, lhs)?;
+                // write!(code, "{} = __to_bit(__floor({} / ", bind, lhs)?;
+                write!(code, "{} = __floor({} / ", bind, lhs)?;
                 generate_free_term(code, &bin_op.rhs)?;
-                writeln!(code, "))")?;
+                // writeln!(code, "))")?;
+                writeln!(code, ")")?;
             }
 
             close_scope(code)?;
@@ -418,7 +443,7 @@ fn generate_free_term(code: &mut String, term: &Term) -> Result<(), Box<dyn Erro
         }
 
         Kind::Str(s) => {
-            write!(code, " \"{}\" ", &s.value.to_string())?;
+            write!(code, " __new_str(\"{}\") ", &s.value.to_string())?;
             Ok(())
         }
 
@@ -546,7 +571,7 @@ fn generate_term(
         }
 
         Kind::Str(s) => {
-            writeln!(code, "{} = {}", bind, &s.value.to_string())?;
+            writeln!(code, "{} = __new_str(\"{}\")", bind, &s.value.to_string())?;
             Ok(())
         }
 

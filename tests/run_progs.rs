@@ -79,7 +79,7 @@ fn cps2() {
     let path = "./tests/test-jsons/cps2.json";
     let program = generate(path).expect("generation error");
     let ret = luajit::run(&program).expect("run error");
-    assert_eq!("1784293664\n-2004260032\n", ret);
+    assert_eq!("500000500000\n50000005000000\n", ret);
 }
 
 #[test]
