@@ -89,3 +89,19 @@ fn closure() {
     let ret = luajit::run(&program).expect("run error");
     assert_eq!("<#closure>\n", ret);
 }
+
+#[test]
+fn concat() {
+    let path = "./tests/test-jsons/concat.rinha.json";
+    let program = generate(path).expect("generation error");
+    let ret = luajit::run(&program).expect("run error");
+    assert_eq!("ab\n109876543210\n", ret);
+}
+
+#[test]
+fn arithm() {
+    let path = "./tests/test-jsons/arithm.rinha.json";
+    let program = generate(path).expect("generation error");
+    let ret = luajit::run(&program).expect("run error");
+    assert_eq!("2\n0\n100\n3\n1\nfalse\ntrue\ntrue\nfalse\nfalse\nfalse\ntrue\ntrue\ntrue\nfalse\ntrue\nfalse\ntrue\nfalse\nfalse\ntrue\ntrue\nfalse\nDONE\n", ret);
+}

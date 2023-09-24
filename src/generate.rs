@@ -35,7 +35,7 @@ local function __print0(x)
         __print0(x[2])
         __buffer_put(__buffer, ")")
     else
-        __buffer_put(__buffer, x)
+        __buffer_put(__buffer, tostring(x))
     end
 end
 
@@ -219,7 +219,7 @@ fn generate_free_bin_op(code: &mut String, bin_op: &Binary) -> Result<(), Box<dy
             generate_free_term(code, &bin_op.lhs)?;
             write!(code, " * ")?;
             generate_free_term(code, &bin_op.rhs)?;
-            write!(code, ") ")?;
+            // write!(code, ") ")?;
             Ok(())
         }
 
@@ -458,7 +458,7 @@ fn generate_free_term(code: &mut String, term: &Term) -> Result<(), Box<dyn Erro
                     write!(code, ",")?;
                 }
             }
-            write!(code, ")")?;
+            writeln!(code, ")")?;
 
             Ok(())
         }
@@ -609,9 +609,9 @@ fn generate_term(
                     }
 
                     for (i, b) in binds.into_iter().enumerate() {
-                        write!(code, "{}", b)?;
+                        write!(code, " {} ", b)?;
                         if i != last_binds - 1 {
-                            write!(code, ",")?;
+                            write!(code, ", ")?;
                         }
                     }
 
@@ -619,11 +619,11 @@ fn generate_term(
                     for (i, b) in frees.into_iter().enumerate() {
                         generate_free_term(code, b)?;
                         if i != frees.len() - 1 {
-                            write!(code, ",")?;
+                            write!(code, ", ")?;
                         }
                     }
 
-                    write!(code, ")")?;
+                    writeln!(code, ")")?;
                 }
                 close_scope(code)?;
             } else {
@@ -651,9 +651,9 @@ fn generate_term(
                     write!(code, "(")?;
 
                     for (i, b) in binds.into_iter().enumerate() {
-                        write!(code, "{}", b)?;
+                        write!(code, " {} ", b)?;
                         if i != last_binds - 1 {
-                            write!(code, ",")?;
+                            write!(code, ", ")?;
                         }
                     }
 
@@ -665,7 +665,7 @@ fn generate_term(
                         }
                     }
 
-                    write!(code, ")")?;
+                    writeln!(code, ")")?;
                 }
             }
 

@@ -1,0 +1,24 @@
+let _ = print(1 + 1);
+let _ = print(1 - 1);
+let _ = print(10 * 10);
+let _ = print(3 / 1);
+let _ = print(3 % 2);
+let _ = print(1 < 1);
+let _ = print(1 < 2);
+let _ = print(1 <= 1);
+let _ = print(1 <= 0);
+let _ = print(1 > 1);
+let _ = print(1 > 2);
+let _ = print(1 >= 1);
+let _ = print(1 >= 0);
+let _ = print(1 == 1);
+let _ = print(1 == 2);
+let _ = print(1 != 2);
+let _ = print(1 != 1);
+let _ = print(true && true);
+let _ = print(true && false);
+let _ = print(false && false);
+let _ = print(true || true);
+let _ = print(true || false);
+let _ = print(false || false);
+print("DONE")

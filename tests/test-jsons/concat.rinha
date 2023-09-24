@@ -1,0 +1,11 @@
+let loop = fn (n, str) => {
+  if (n == 0) {
+    str + n
+  } else {
+    loop(n-1, str + n)
+  }
+};
+
+
+let _ = print("a" + "b");
+print(loop(10, ""))
