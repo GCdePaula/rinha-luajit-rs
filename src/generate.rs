@@ -458,7 +458,7 @@ fn generate_free_term(code: &mut String, term: &Term) -> Result<(), Box<dyn Erro
                     write!(code, ",")?;
                 }
             }
-            writeln!(code, ")")?;
+            write!(code, ")")?;
 
             Ok(())
         }
@@ -665,7 +665,7 @@ fn generate_term(
                         }
                     }
 
-                    writeln!(code, ")")?;
+                    write!(code, ")")?;
                 }
             }
 
