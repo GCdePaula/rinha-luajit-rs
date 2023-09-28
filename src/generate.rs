@@ -16,6 +16,7 @@ local __new_str
 
 local __str_mt = {
     __add = function(lhs, rhs) return __new_str(tostring(lhs) .. tostring(rhs)) end,
+    __eq = function(lhs, rhs) return lhs[1] == rhs[1] end,
     __tostring = function(x) return x[1] end,
 }
 
@@ -29,7 +30,7 @@ local function __print0(x)
     if type(x) == "function" then
         __buffer_put(__buffer, "<#closure>")
     elseif getmetatable(x) == __str_mt then
-        __buffer_put(__buffer, x)
+        __buffer_put(__buffer, x[1])
     elseif type(x) == "table" then
         __buffer_put(__buffer, "(")
         __print0(x[1])
@@ -73,29 +74,29 @@ fn anotate(term: &mut Term, last: bool) -> bool {
     let kind = &mut term.kind;
     match kind {
         Kind::Call(ref mut c) => {
-            term.binds = term.binds || anotate(&mut c.callee, false);
+            term.binds = anotate(&mut c.callee, false) || term.binds;
 
             for mut a in &mut c.arguments {
-                term.binds = term.binds || anotate(&mut a, false);
+                term.binds = anotate(&mut a, false) || term.binds;
             }
         }
 
         Kind::Binary(ref mut b) => {
-            term.binds = term.binds || anotate(&mut b.lhs, false);
-            term.binds = term.binds || anotate(&mut b.rhs, false);
+            term.binds = anotate(&mut b.lhs, false) || term.binds;
+            term.binds = anotate(&mut b.rhs, false) || term.binds;
         }
 
         Kind::Print(ref mut p) => {
-            term.binds = term.binds || anotate(&mut p.value, false);
+            term.binds = anotate(&mut p.value, false) || term.binds;
         }
 
         Kind::First(First { ref mut value, .. }) | Kind::Second(Second { ref mut value, .. }) => {
-            term.binds = term.binds || anotate(&mut *value, false);
+            term.binds = anotate(&mut *value, false) || term.binds;
         }
 
         Kind::Tuple(ref mut t) => {
-            term.binds = term.binds || anotate(&mut t.first, false);
-            term.binds = term.binds || anotate(&mut t.second, false);
+            term.binds = anotate(&mut t.first, false) || term.binds;
+            term.binds = anotate(&mut t.second, false) || term.binds;
         }
 
         Kind::Error(_) | Kind::Int(_) | Kind::Str(_) | Kind::Bool(_) | Kind::Var(_) => {
@@ -299,8 +300,8 @@ fn generate_bin_op(
             generate_term(code, &bin_op.lhs, temps + 1, lhs.clone())?;
 
             if bin_op.rhs.binds {
-                let rhs = generate_binding(code, temps)?;
-                generate_term(code, &bin_op.rhs, temps + 1, rhs.clone())?;
+                let rhs = generate_binding(code, temps + 2)?;
+                generate_term(code, &bin_op.rhs, temps + 3, rhs.clone())?;
                 // writeln!(code, "{} = __to_bit({} + {})", bind, lhs, rhs)?;
                 writeln!(code, "{} = {} + {}", bind, lhs, rhs)?;
                 close_scope(code)?;
@@ -321,8 +322,8 @@ fn generate_bin_op(
             generate_term(code, &bin_op.lhs, temps + 1, lhs.clone())?;
 
             if bin_op.rhs.binds {
-                let rhs = generate_binding(code, temps)?;
-                generate_term(code, &bin_op.rhs, temps + 1, rhs.clone())?;
+                let rhs = generate_binding(code, temps + 2)?;
+                generate_term(code, &bin_op.rhs, temps + 3, rhs.clone())?;
                 // writeln!(code, "{} = __to_bit({} - {})", bind, lhs, rhs)?;
                 writeln!(code, "{} = {} - {}", bind, lhs, rhs)?;
                 close_scope(code)?;
@@ -343,8 +344,8 @@ fn generate_bin_op(
             generate_term(code, &bin_op.lhs, temps + 1, lhs.clone())?;
 
             if bin_op.rhs.binds {
-                let rhs = generate_binding(code, temps)?;
-                generate_term(code, &bin_op.rhs, temps + 1, rhs.clone())?;
+                let rhs = generate_binding(code, temps + 2)?;
+                generate_term(code, &bin_op.rhs, temps + 3, rhs.clone())?;
                 // writeln!(code, "{} = __to_bit({} * {})", bind, lhs, rhs)?;
                 writeln!(code, "{} = {} * {}", bind, lhs, rhs)?;
                 close_scope(code)?;
@@ -365,8 +366,8 @@ fn generate_bin_op(
             generate_term(code, &bin_op.lhs, temps + 1, lhs.clone())?;
 
             if bin_op.rhs.binds {
-                let rhs = generate_binding(code, temps)?;
-                generate_term(code, &bin_op.rhs, temps + 1, rhs.clone())?;
+                let rhs = generate_binding(code, temps + 2)?;
+                generate_term(code, &bin_op.rhs, temps + 3, rhs.clone())?;
                 // writeln!(code, "{} = __to_bit(__floor({} / {}))", bind, lhs, rhs)?;
                 writeln!(code, "{} = __floor({} / {}))", bind, lhs, rhs)?;
                 close_scope(code)?;
@@ -530,11 +531,11 @@ fn generate_free_term(code: &mut String, term: &Term) -> Result<(), Box<dyn Erro
         }
 
         Kind::Tuple(t) => {
-            write!(code, "{{")?;
+            write!(code, "({{")?;
             generate_free_term(code, &t.first)?;
             write!(code, ",")?;
             generate_free_term(code, &t.second)?;
-            write!(code, "}}")?;
+            write!(code, "}})")?;
 
             Ok(())
         }
@@ -582,6 +583,7 @@ fn generate_term(
                 let callee = generate_binding(code, temps + 1)?;
                 let temps = temps + 1;
                 generate_term(code, &c.callee, temps, callee.clone())?;
+                let temps = temps + 1;
 
                 if c.arguments.is_empty() {
                     if !term.last {
@@ -600,8 +602,8 @@ fn generate_term(
                     }
 
                     let binds = generate_bindings(code, temps, last_binds)?;
-                    for b in binds.iter() {
-                        generate_term(code, term, temps + last_binds, b.clone())?;
+                    for (i, b) in binds.iter().enumerate() {
+                        generate_term(code, &c.arguments[i], temps + last_binds, b.clone())?;
                     }
 
                     if !term.last {
@@ -612,7 +614,7 @@ fn generate_term(
 
                     for (i, b) in binds.into_iter().enumerate() {
                         write!(code, " {} ", b)?;
-                        if i != last_binds - 1 {
+                        if i != last_binds {
                             write!(code, ", ")?;
                         }
                     }
@@ -644,8 +646,8 @@ fn generate_term(
                     }
 
                     let binds = generate_bindings(code, temps, last_binds)?;
-                    for b in binds.iter() {
-                        generate_term(code, term, temps + last_binds, b.clone())?;
+                    for (i, b) in binds.iter().enumerate() {
+                        generate_term(code, &c.arguments[i], temps + last_binds, b.clone())?;
                     }
 
                     write!(code, "{} = ", bind)?;
@@ -654,7 +656,7 @@ fn generate_term(
 
                     for (i, b) in binds.into_iter().enumerate() {
                         write!(code, " {} ", b)?;
-                        if i != last_binds - 1 {
+                        if i != last_binds {
                             write!(code, ", ")?;
                         }
                     }
@@ -669,6 +671,8 @@ fn generate_term(
 
                     write!(code, ")")?;
                 }
+
+                close_scope(code)?;
             }
 
             Ok(())
@@ -706,20 +710,21 @@ fn generate_term(
         }
 
         Kind::If(c) => {
-            if c.condition.binds {
+            let temps = if c.condition.binds {
                 let cond = generate_binding(code, temps)?;
                 generate_term(code, &c.condition, temps + 1, cond.clone())?;
                 writeln!(code, "if {} then", cond)?;
-                close_scope(code)?;
+                temps + 1
             } else {
                 write!(code, "if ")?;
                 generate_free_term(code, &c.condition)?;
                 writeln!(code, " then")?;
-            }
+                temps
+            };
 
-            generate_term(code, &c.then, temps + 1, bind.clone())?;
+            generate_term(code, &c.then, temps, bind.clone())?;
             writeln!(code, " else")?;
-            generate_term(code, &c.otherwise, temps + 1, bind)?;
+            generate_term(code, &c.otherwise, temps, bind)?;
             writeln!(code, " end")?;
 
             Ok(())
@@ -764,7 +769,7 @@ fn generate_term(
             if t.second.binds {
                 let s = generate_binding(code, temps)?;
                 generate_term(code, &t.second, temps + 1, s.clone())?;
-                writeln!(code, "{{ {}, {} }}", f, s)?;
+                writeln!(code, "({{ {}, {} }})", f, s)?;
                 close_scope(code)?;
             } else {
                 write!(code, "{} = {{ {}, ", bind, f)?;
@@ -783,23 +788,28 @@ fn generate_term(
     }
 }
 
-pub fn generate(path: &str) -> Result<String, Box<dyn Error>> {
+fn gen_prog(mut ast: crate::ast::File) -> Result<String, Box<dyn Error>> {
+    anotate(&mut ast.expression, false);
+
+    let mut code = String::with_capacity(8192);
+    write!(code, "{}", PRELUDE)?;
+    generate_term(&mut code, &ast.expression, 0, "__ret".to_owned())?;
+    write!(code, "{}", POSTLUDE)?;
+
+    Ok(code)
+}
+
+pub fn generate(path: &str) -> Result<String, String> {
     let data = std::fs::read_to_string(path).expect("Unable to read file");
 
     let mut deserializer = serde_json::Deserializer::from_str(&data);
     deserializer.disable_recursion_limit();
     let deserializer = serde_stacker::Deserializer::new(&mut deserializer);
-    let mut ast = crate::ast::File::deserialize(deserializer)?;
+    let ast = crate::ast::File::deserialize(deserializer).map_err(|e| format!("{}", e))?;
 
     // let mut ast: crate::ast::File = serde_json::from_str(&data)?;
 
-    anotate(&mut ast.expression, false);
+    let prog = gen_prog(ast).map_err(|e| format!("{}", e))?;
 
-    let mut code = String::with_capacity(8192);
-    write!(code, "{}", PRELUDE)?;
-
-    generate_term(&mut code, &ast.expression, 0, "__ret".to_owned())?;
-
-    write!(code, "{}", POSTLUDE)?;
-    Ok(code)
+    Ok(prog)
 }
