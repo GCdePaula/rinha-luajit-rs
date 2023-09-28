@@ -1,3 +1,5 @@
+use serde::Deserialize;
+
 use crate::ast::{Binary, BinaryOp, First, Kind, Second, Term};
 use std::{error::Error, fmt::Write};
 
@@ -783,7 +785,14 @@ fn generate_term(
 
 pub fn generate(path: &str) -> Result<String, Box<dyn Error>> {
     let data = std::fs::read_to_string(path).expect("Unable to read file");
-    let mut ast: crate::ast::File = serde_json::from_str(&data)?;
+
+    let mut deserializer = serde_json::Deserializer::from_str(&data);
+    deserializer.disable_recursion_limit();
+    let deserializer = serde_stacker::Deserializer::new(&mut deserializer);
+    let mut ast = crate::ast::File::deserialize(deserializer)?;
+
+    // let mut ast: crate::ast::File = serde_json::from_str(&data)?;
+
     anotate(&mut ast.expression, false);
 
     let mut code = String::with_capacity(8192);
