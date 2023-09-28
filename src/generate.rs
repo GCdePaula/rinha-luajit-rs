@@ -146,7 +146,7 @@ fn generate_bindings(
 
     for i in 0..num {
         let binding = format!("__temp_{}", temps + i);
-        writeln!(code, "local {}", binding)?;
+        // writeln!(code, "local {}", binding)?;
         ret.push(binding);
     }
 
@@ -156,7 +156,7 @@ fn generate_bindings(
 fn generate_binding(code: &mut String, temps: usize) -> Result<String, Box<dyn Error>> {
     generate_scope(code)?;
     let binding = format!("__temp_{}", temps);
-    writeln!(code, "local {}", binding)?;
+    // writeln!(code, "local {}", binding)?;
     Ok(binding)
 }
 
@@ -703,7 +703,9 @@ fn generate_term(
 
         Kind::Let(l) => {
             let name = format!("var_{}", l.name.text);
-            writeln!(code, "local {}", &name)?;
+            if l.name.text != "_" {
+                writeln!(code, "local {}", &name)?;
+            }
             generate_term(code, &l.value, temps + 1, name)?;
             generate_term(code, &l.next, temps + 1, bind)?;
             Ok(())
@@ -793,6 +795,12 @@ fn gen_prog(mut ast: crate::ast::File) -> Result<String, Box<dyn Error>> {
 
     let mut code = String::with_capacity(8192);
     write!(code, "{}", PRELUDE)?;
+
+    for i in 0..120 {
+        writeln!(code, "local __temp_{}", i)?;
+    }
+    writeln!(code, "local var__")?;
+
     generate_term(&mut code, &ast.expression, 0, "__ret".to_owned())?;
     write!(code, "{}", POSTLUDE)?;
 
