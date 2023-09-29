@@ -511,13 +511,13 @@ fn generate_free_term(code: &mut String, term: &Term) -> Result<(), Box<dyn Erro
 
         Kind::First(f) => {
             generate_free_term(code, &f.value)?;
-            writeln!(code, "[1]")?;
+            write!(code, "[1]")?;
             Ok(())
         }
 
         Kind::Second(s) => {
             generate_free_term(code, &s.value)?;
-            writeln!(code, "[2]")?;
+            write!(code, "[2]")?;
             Ok(())
         }
 
@@ -743,7 +743,7 @@ fn generate_term(
         Kind::First(f) => {
             let arg = generate_binding(code, temps)?;
             generate_term(code, &f.value, temps + 1, arg.clone())?;
-            writeln!(code, "{} = {}[1]", bind, arg)?;
+            write!(code, "{} = {}[1]", bind, arg)?;
             close_scope(code)?;
             Ok(())
         }
@@ -751,7 +751,7 @@ fn generate_term(
         Kind::Second(s) => {
             let arg = generate_binding(code, temps)?;
             generate_term(code, &s.value, temps + 1, arg.clone())?;
-            writeln!(code, "{} = {}[2]", bind, arg)?;
+            write!(code, "{} = {}[2]", bind, arg)?;
             close_scope(code)?;
             Ok(())
         }
