@@ -481,7 +481,7 @@ fn generate_free_term(code: &mut String, term: &Term) -> Result<(), Box<dyn Erro
             if let Some(last) = f.parameters.last() {
                 writeln!(
                     code,
-                    "__assert(var_{} and not __sentinel, 'wrong argument count')",
+                    "__assert(var_{} ~= nil and __sentinel == nil, 'wrong argument count')",
                     last.text
                 )?;
             }
