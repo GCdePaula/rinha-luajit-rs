@@ -138,21 +138,25 @@ let eval = fn(exp, env) => {
         (ValFunc, (param, (body, env)))
     } else {
 
-    // ExpLet
-    let var = first(data);
-    let value = first(second(data));
 
-    let rec = fn() => {
-        let rec_env = bind(var, (ValLazy, rec), env);
-        eval(value, rec_env)
-    };
+    if (kind == ExpLet) {
+        let var = first(data);
+        let value = first(second(data));
 
-    let env2 = bind(var, (ValLazy, rec), env);
-    let evalue = eval(value, env2);
-    let env3 = bind(var, evalue, env);
+        let rec = fn() => {
+            let rec_env = bind(var, (ValLazy, rec), env);
+            eval(value, rec_env)
+        };
 
-    let next = second(second(data));
-    eval(next, env3)
+        let env2 = bind(var, (ValLazy, rec), env);
+        let evalue = eval(value, env2);
+        let env3 = bind(var, evalue, env);
+
+        let next = second(second(data));
+        eval(next, env3)
+    } else {
+        (ValErr, "exp malformed")
+    }
 
     }}}}}}}}}
 
@@ -189,5 +193,29 @@ let fib =
 
 
 let _ = print("fib 10: " + second(eval(fib, empty_env)));
+
+let fib_tc =
+  (ExpLet, ("f", (
+    (ExpLambda, ("x", (ExpLambda, ("y", (ExpLambda, ("z",
+
+       (ExpIf, (
+           (ExpVar, "x"),
+
+           ((ExpIf, ((ExpSub, ((ExpVar, "x"), (ExpK, 1))), (
+              (ExpApp, ((ExpApp, ((ExpApp, ((ExpVar, "f"), (ExpSub, ((ExpVar, "x"), (ExpK, 1))))), (ExpVar, "z"))),
+                  (ExpAdd, ((ExpVar, "y"), (ExpVar, "z"))))),
+
+          (ExpVar, "z")))),
+
+       (ExpVar, "y"))))
+
+       )))))),
+
+    (ExpApp, ((ExpApp, ((ExpApp, ((ExpVar, "f"), (ExpK, 45))), (ExpK, 0))), (ExpK, 1)))
+    )));
+
+
+let _ = print("fib_tc 45: " + second(eval(fib_tc, empty_env)));
+
 
 print("OK")
