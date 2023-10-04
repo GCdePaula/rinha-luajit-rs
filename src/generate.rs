@@ -3,12 +3,15 @@ use serde::Deserialize;
 use crate::ast::{Binary, BinaryOp, First, Kind, Second, Term};
 use std::{error::Error, fmt::Write};
 
+const MAX_DEPTH: usize = 16;
+
 const PRELUDE: &str = r#"
 -- Prelude
 -- local __to_bit = require "bit".tobit
 
 local __buffer = require "string.buffer".new(1024)
 local __buffer_put = __buffer.put
+-- local __buffer_put = function(_, x) print(x) end
 local __buffer_tostring = __buffer.tostring
 
 
@@ -69,56 +72,66 @@ end
 return __buffer_tostring(__buffer)
 "#;
 
-fn anotate(term: &mut Term, last: bool) -> bool {
+fn anotate(term: &mut Term, last: bool, depth: usize) -> bool {
     term.last = last;
     let kind = &mut term.kind;
     match kind {
         Kind::Call(ref mut c) => {
-            term.binds = anotate(&mut c.callee, false) || term.binds;
+            term.binds = anotate(&mut c.callee, false, depth) || term.binds;
+            term.depth = c.callee.depth + 1;
 
             for mut a in &mut c.arguments {
-                term.binds = anotate(&mut a, false) || term.binds;
+                term.binds = anotate(&mut a, false, depth) || term.binds;
+                term.depth = usize::max(term.depth, a.depth + 1);
             }
         }
 
         Kind::Binary(ref mut b) => {
-            term.binds = anotate(&mut b.lhs, false) || term.binds;
-            term.binds = anotate(&mut b.rhs, false) || term.binds;
+            term.binds = anotate(&mut b.lhs, false, depth) || term.binds;
+            term.binds = anotate(&mut b.rhs, false, depth) || term.binds;
+            term.depth = usize::max(b.lhs.depth + 1, b.rhs.depth + 1);
         }
 
         Kind::Print(ref mut p) => {
-            term.binds = anotate(&mut p.value, false) || term.binds;
+            term.binds = anotate(&mut p.value, false, depth) || term.binds;
+            term.depth = p.value.depth + 1;
         }
 
         Kind::First(First { ref mut value, .. }) | Kind::Second(Second { ref mut value, .. }) => {
-            term.binds = anotate(&mut *value, false) || term.binds;
+            term.binds = anotate(&mut *value, false, depth) || term.binds;
+            term.depth = value.depth + 1;
         }
 
         Kind::Tuple(ref mut t) => {
-            term.binds = anotate(&mut t.first, false) || term.binds;
-            term.binds = anotate(&mut t.second, false) || term.binds;
+            term.binds = anotate(&mut t.first, false, depth) || term.binds;
+            term.binds = anotate(&mut t.second, false, depth) || term.binds;
+            term.depth = usize::max(t.first.depth + 1, t.second.depth + 1);
         }
 
         Kind::Error(_) | Kind::Int(_) | Kind::Str(_) | Kind::Bool(_) | Kind::Var(_) => {
-            term.binds = false
+            term.binds = false;
+            term.depth = depth;
         }
 
         Kind::Function(f) => {
-            anotate(&mut f.value, true);
-            term.binds = false
+            anotate(&mut f.value, true, depth);
+            term.binds = false;
+            term.depth = f.value.depth;
         }
 
         Kind::If(ref mut i) => {
-            anotate(&mut i.condition, false);
-            anotate(&mut i.then, last);
-            anotate(&mut i.otherwise, last);
+            anotate(&mut i.condition, false, depth);
+            anotate(&mut i.then, last, depth);
+            anotate(&mut i.otherwise, last, depth);
             term.binds = true;
+            term.depth = depth;
         }
 
         Kind::Let(l) => {
             term.last = false;
-            anotate(&mut l.value, false);
-            anotate(&mut l.next, last);
+            anotate(&mut l.value, false, depth);
+            anotate(&mut l.next, last, depth);
+            term.depth = depth;
             term.binds = true;
         }
     }
@@ -126,13 +139,13 @@ fn anotate(term: &mut Term, last: bool) -> bool {
     term.binds
 }
 
-fn generate_scope(code: &mut String) -> Result<(), Box<dyn Error>> {
-    writeln!(code, "do")?;
+fn generate_scope(_code: &mut String) -> Result<(), Box<dyn Error>> {
+    // writeln!(code, "do")?;
     Ok(())
 }
 
-fn close_scope(code: &mut String) -> Result<(), Box<dyn Error>> {
-    writeln!(code, "end")?;
+fn close_scope(_code: &mut String) -> Result<(), Box<dyn Error>> {
+    // writeln!(code, "end")?;
     Ok(())
 }
 
@@ -523,8 +536,8 @@ fn generate_free_term(code: &mut String, term: &Term) -> Result<(), Box<dyn Erro
 
         Kind::Bool(b) => {
             match b.value {
-                true => write!(code, "true")?,
-                false => write!(code, "false")?,
+                true => write!(code, " true ")?,
+                false => write!(code, " false ")?,
             }
 
             Ok(())
@@ -553,7 +566,7 @@ fn generate_term(
     temps: usize,
     bind: String,
 ) -> Result<(), Box<dyn Error>> {
-    if !term.binds {
+    if !term.binds && term.depth < MAX_DEPTH {
         if !term.last {
             writeln!(code, "{} = ", bind)?;
             return generate_free_term(code, term);
@@ -579,7 +592,7 @@ fn generate_term(
         }
 
         Kind::Call(c) => {
-            if c.callee.binds {
+            if c.callee.binds || term.depth >= MAX_DEPTH {
                 let callee = generate_binding(code, temps + 1)?;
                 let temps = temps + 1;
                 generate_term(code, &c.callee, temps, callee.clone())?;
@@ -768,10 +781,10 @@ fn generate_term(
             let f = generate_binding(code, temps)?;
             generate_term(code, &t.first, temps + 1, f.clone())?;
 
-            if t.second.binds {
-                let s = generate_binding(code, temps)?;
-                generate_term(code, &t.second, temps + 1, s.clone())?;
-                writeln!(code, "({{ {}, {} }})", f, s)?;
+            if t.second.binds || t.second.depth >= MAX_DEPTH {
+                let s = generate_binding(code, temps + 1)?;
+                generate_term(code, &t.second, temps + 2, s.clone())?;
+                writeln!(code, "{bind} = ({{ {}, {} }})", f, s)?;
                 close_scope(code)?;
             } else {
                 write!(code, "{} = {{ {}, ", bind, f)?;
@@ -791,7 +804,7 @@ fn generate_term(
 }
 
 fn gen_prog(mut ast: crate::ast::File) -> Result<String, Box<dyn Error>> {
-    anotate(&mut ast.expression, false);
+    anotate(&mut ast.expression, false, 0);
 
     let mut code = String::with_capacity(8192);
     write!(code, "{}", PRELUDE)?;

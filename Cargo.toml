@@ -4,6 +4,9 @@ version = "0.1.0"
 edition = "2021"
 license = "MIT"
 
+[[bin]]
+name = "meta-rinha"
+
 
 [dependencies]
 libc = "0.2"

@@ -246,6 +246,9 @@ pub struct Term {
     pub binds: bool,
 
     #[serde(default)]
+    pub depth: usize,
+
+    #[serde(default)]
     pub last: bool,
 
     #[serde(flatten)]

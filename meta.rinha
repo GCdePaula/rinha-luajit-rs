@@ -1,7 +1,18 @@
+//
+// Value types
+//
+
 let ValErr = "val_err";
 let ValInt = "val_int";
+let ValStr = "val_str";
+let ValBool = "val_bool";
 let ValFunc = "val_func";
-let ValLazy = "val_lazy";
+let ValRec = "val_rec";
+
+
+//
+// Env
+//
 
 let empty_env = fn(v) => {
     (ValErr, "undefined variable " + v)
@@ -16,6 +27,11 @@ let bind = fn(var, val, env) => {
         }
     }
 };
+
+
+//
+// BinOps
+//
 
 let sum = fn(lhs, rhs) => {
     lhs + rhs
@@ -33,6 +49,10 @@ let div = fn(lhs, rhs) => {
     lhs / rhs
 };
 
+let rem = fn(lhs, rhs) => {
+    lhs % rhs
+};
+
 let bin_op = fn(op, lhs, rhs) => {
     let lt = first(lhs);
     let rt = first(rhs);
@@ -43,18 +63,34 @@ let bin_op = fn(op, lhs, rhs) => {
     }
 };
 
+let sum_op = fn(lhs, rhs) => {
+    let lt = first(lhs);
+    let rt = first(rhs);
+    if ((lt == ValInt) && (rt == ValInt)) {
+        (ValInt, second(lhs) + second(rhs))
+    } else {
+    if ((lt == ValStr) && (rt == ValStr)) {
+        (ValStr, second(lhs) + second(rhs))
+    } else {
+        (ValErr, "binary operand is not a number")
+    }}
+};
 
 
-let ExpK = "ExpK"; // Integer
-let ExpVar = "ExpVar"; // Var
-let ExpAdd = "ExpAdd"; // Exp Exp
-let ExpSub = "ExpSub"; // Exp Exp
-let ExpMul = "ExpMul"; // Exp Exp
-let ExpDiv = "ExpDiv"; // Exp Exp
-let ExpIf = "ExpIf"; //Exp Exp Exp
-let ExpApp = "ExpApp"; // Exp Exp
-let ExpLambda = "ExpLambda"; // Var Exp
-let ExpLet =  "ExpLet"; // Var Exp Exp
+let ExpK = "ExpK";           // Integer
+let ExpS = "ExpS";           // String
+let ExpB = "ExpS";           // Bool
+let ExpVar = "ExpVar";       // Var
+let ExpAdd = "ExpAdd";       // (Exp, Exp)
+let ExpSub = "ExpSub";       // (Exp, Exp)
+let ExpMul = "ExpMul";       // (Exp, Exp)
+let ExpDiv = "ExpDiv";       // (Exp, Exp)
+let ExpRem = "ExpRem";       // (Exp, Exp)
+let ExpIf = "ExpIf";         // (Exp, (Exp, Exp))
+let ExpApp = "ExpApp";       // (Exp, Exp)
+let ExpLambda = "ExpLambda"; // (Var, Exp)
+let ExpLet = "ExpLet";       // (Var, (Exp, Exp))
+
 
 let eval = fn(exp, env) => {
     let kind = first(exp);
@@ -64,11 +100,17 @@ let eval = fn(exp, env) => {
         (ValInt, data)
     } else {
 
+    if (kind == ExpS) {
+        (ValStr, data)
+    } else {
+
+    if (kind == ExpB) {
+        (ValBool, data)
+    } else {
+
     if (kind == ExpVar) {
-        // second(env(data))()
-        //env(data)
         let x = env(data);
-        if (first(x) == ValLazy) {
+        if (first(x) == ValRec) {
             second(x)()
         } else {
             x
@@ -78,7 +120,7 @@ let eval = fn(exp, env) => {
     if (kind == ExpAdd) {
         let lhs = eval(first(data), env);
         let rhs = eval(second(data), env);
-        bin_op(sum, lhs, rhs)
+        sum_op(lhs, rhs)
     } else {
 
     if (kind == ExpSub) {
@@ -97,6 +139,12 @@ let eval = fn(exp, env) => {
         let lhs = eval(first(data), env);
         let rhs = eval(second(data), env);
         bin_op(div, lhs, rhs)
+    } else {
+
+    if (kind == ExpRem) {
+        let lhs = eval(first(data), env);
+        let rhs = eval(second(data), env);
+        bin_op(rem, lhs, rhs)
     } else {
 
     if (kind == ExpIf) {
@@ -144,11 +192,11 @@ let eval = fn(exp, env) => {
         let value = first(second(data));
 
         let rec = fn() => {
-            let rec_env = bind(var, (ValLazy, rec), env);
+            let rec_env = bind(var, (ValRec, rec), env);
             eval(value, rec_env)
         };
 
-        let env2 = bind(var, (ValLazy, rec), env);
+        let env2 = bind(var, (ValRec, rec), env);
         let evalue = eval(value, env2);
         let env3 = bind(var, evalue, env);
 
@@ -158,8 +206,7 @@ let eval = fn(exp, env) => {
         (ValErr, "exp malformed")
     }
 
-    }}}}}}}}}
-
+    }}}}}}}}}}}}
 };
 
 let fac =

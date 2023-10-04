@@ -1,0 +1,7 @@
+
+let v = eval(prog, empty_env);
+if (first(v) == ValErr) {
+    print("error: " + second(v))
+} else {
+    _
+}

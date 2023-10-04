@@ -1,0 +1,393 @@
+//
+// Value types
+//
+
+let ValErr = "val_err";
+let ValInt = "val_int";
+let ValStr = "val_str";
+let ValBool = "val_bool";
+let ValTuple = "val_tuple";
+let ValUnit = "val_unit";
+let ValFunc = "val_func";
+let ValRec = "val_rec";
+
+
+//
+// Env
+//
+
+let empty_env = fn(v) => {
+    (ValErr, "undefined variable " + v)
+};
+
+let bind = fn(var, val, env) => {
+    fn(v) => {
+        if (var == v) {
+            val
+        } else {
+            env(v)
+        }
+    }
+};
+
+
+//
+// BinOps
+//
+
+let sum_op = fn(lhs, rhs) => {
+    let lt = first(lhs);
+    let rt = first(rhs);
+    if ((lt == ValInt) && (rt == ValInt)) {
+        (ValInt, second(lhs) + second(rhs))
+    } else {
+    if ((lt == ValStr) || (rt == ValStr)) {
+        (ValStr, second(lhs) + second(rhs))
+    } else {
+        (ValErr, "binary operand is not a number")
+    }}
+};
+
+let sub = fn(lhs, rhs) => {
+    lhs - rhs
+};
+
+let mul = fn(lhs, rhs) => {
+    lhs * rhs
+};
+
+let div = fn(lhs, rhs) => {
+    lhs / rhs
+};
+
+let rem = fn(lhs, rhs) => {
+    lhs % rhs
+};
+
+let bin_op = fn(op, lhs, rhs) => {
+    let lt = first(lhs);
+    let rt = first(rhs);
+    if ((lt == ValInt) && (rt == ValInt)) {
+        (ValInt, op(second(lhs), second(rhs)))
+    } else {
+        (ValErr, "binary operand is not a number")
+    }
+};
+
+let eq = fn(lhs, rhs) => {
+    lhs == rhs
+};
+
+let neq = fn(lhs, rhs) => {
+    lhs != rhs
+};
+
+let lt = fn(lhs, rhs) => {
+    lhs < rhs
+};
+
+let lte = fn(lhs, rhs) => {
+    lhs <= rhs
+};
+
+let gt = fn(lhs, rhs) => {
+    lhs > rhs
+};
+
+let gte = fn(lhs, rhs) => {
+    lhs >= rhs
+};
+
+let comp_op = fn(op, lhs, rhs) => {
+    let lt = first(lhs);
+    let rt = first(rhs);
+    if ((lt == ValInt) && (rt == ValInt)) {
+        (ValBool, op(second(lhs), second(rhs)))
+    } else {
+
+    if ((lt == ValStr) && (rt == ValStr)) {
+        (ValBool, op(second(lhs), second(rhs)))
+    }
+
+    else {
+        (ValErr, "comp operands are not compatible")
+    }}
+};
+
+
+//
+// Intrinsics
+//
+
+let meta_print = fn(v) => {
+    let kind = first(v);
+
+    if ((kind == ValInt) || (kind == ValStr) || (kind == ValBool)) {
+        let _ = print(second(v));
+        v
+    } else {
+
+    if (kind == ValTuple) {
+        let t = second(s);
+        let _ = print("(" + first(t) + ", " + second(t) + ")");
+        v
+    } else {
+
+    if (kind == ValFunc) {
+        let _ = print("<#closure>");
+        v
+    }
+
+    else {
+        (ValErr, "print kind not recognized: " + kind)
+    }}}
+};
+
+let ExpU = "ExpU";           // Unit
+let ExpK = "ExpK";           // Integer
+let ExpS = "ExpS";           // String
+let ExpB = "ExpB";           // Bool
+let ExpT = "ExpT";           // Tuple
+let ExpVar = "ExpVar";       // Var
+let ExpAdd = "ExpAdd";       // (Exp, Exp)
+let ExpSub = "ExpSub";       // (Exp, Exp)
+let ExpMul = "ExpMul";       // (Exp, Exp)
+let ExpDiv = "ExpDiv";       // (Exp, Exp)
+let ExpRem = "ExpRem";       // (Exp, Exp)
+let ExpEq = "ExpEq";         // (Exp, Exp)
+let ExpNeq = "ExpNeq";       // (Exp, Exp)
+let ExpGt = "ExpGt";         // (Exp, Exp)
+let ExpGte = "ExpGte";       // (Exp, Exp)
+let ExpLt = "ExpLt";         // (Exp, Exp)
+let ExpLte = "ExpLte";       // (Exp, Exp)
+let ExpAnd = "ExpAnd";       // (Exp, Exp)
+let ExpOr = "ExOr";          // (Exp, Exp)
+let ExpIf = "ExpIf";         // (Exp, (Exp, Exp))
+let ExpApp = "ExpApp";       // (Exp, Exp)
+let ExpLambda = "ExpLambda"; // (Var, Exp)
+let ExpLet = "ExpLet";       // (Var, (Exp, Exp))
+let ExpPrint = "ExpPrint";   // Exp
+let ExpFirst = "ExpFirst";   // Exp
+let ExpSecond = "ExpSecond"; // Exp
+
+
+let eval = fn(exp, env) => {
+    let kind = first(exp);
+    let data = second(exp);
+
+    if (kind == ExpU) {
+        (ValUnit, 0)
+    } else {
+
+    if (kind == ExpK) {
+        (ValInt, data)
+    } else {
+
+    if (kind == ExpS) {
+        (ValStr, data)
+    } else {
+
+    if (kind == ExpB) {
+        (ValBool, data)
+    } else {
+
+    if (kind == ExpT) {
+        (ValTuple, (eval(first(data), env), eval(second(data), env)))
+    } else {
+
+
+    if (kind == ExpVar) {
+        let x = env(data);
+        if (first(x) == ValRec) {
+            second(x)()
+        } else {
+            x
+        }
+    } else {
+
+    if (kind == ExpAdd) {
+        let lhs = eval(first(data), env);
+        let rhs = eval(second(data), env);
+        sum_op(lhs, rhs)
+    } else {
+
+    if (kind == ExpSub) {
+        let lhs = eval(first(data), env);
+        let rhs = eval(second(data), env);
+        bin_op(sub, lhs, rhs)
+    } else {
+
+    if (kind == ExpMul) {
+        let lhs = eval(first(data), env);
+        let rhs = eval(second(data), env);
+        bin_op(mul, lhs, rhs)
+    } else {
+
+    if (kind == ExpDiv) {
+        let lhs = eval(first(data), env);
+        let rhs = eval(second(data), env);
+        bin_op(div, lhs, rhs)
+    } else {
+
+    if (kind == ExpRem) {
+        let lhs = eval(first(data), env);
+        let rhs = eval(second(data), env);
+        bin_op(rem, lhs, rhs)
+    } else {
+
+    if (kind == ExpEq) {
+        let lhs = eval(first(data), env);
+        let rhs = eval(second(data), env);
+        comp_op(eq, lhs, rhs)
+    } else {
+
+    if (kind == ExpNeq) {
+        let lhs = eval(first(data), env);
+        let rhs = eval(second(data), env);
+        comp_op(neq, lhs, rhs)
+    } else {
+
+    if (kind == ExpGt) {
+        let lhs = eval(first(data), env);
+        let rhs = eval(second(data), env);
+        comp_op(gt, lhs, rhs)
+    } else {
+
+    if (kind == ExpGte) {
+        let lhs = eval(first(data), env);
+        let rhs = eval(second(data), env);
+        comp_op(gte, lhs, rhs)
+    } else {
+
+    if (kind == ExpLt) {
+        let lhs = eval(first(data), env);
+        let rhs = eval(second(data), env);
+        comp_op(lt, lhs, rhs)
+    } else {
+
+    if (kind == ExpLte) {
+        let lhs = eval(first(data), env);
+        let rhs = eval(second(data), env);
+        comp_op(lte, lhs, rhs)
+    } else {
+
+    if (kind == ExpAnd) {
+        let lhs = eval(first(data), env);
+        if (first(lhs) == ValBool) {
+            if (second(lhs)) {
+                let rhs = eval(second(data), env);
+                if (first(rhs) == ValBool) {
+                    rhs
+                } else {
+                    (ValErr, "and rhs operand not a bool: " + first(rhs))
+                }
+            } else {
+                (ValBool, false)
+            }
+        } else {
+            (ValErr, "and lhs operand not a bool: " + first(lhs))
+        }
+    } else {
+
+    if (kind == ExpOr) {
+        let lhs = eval(first(data), env);
+        if (first(lhs) == ValBool) {
+            if (second(lhs)) {
+                (ValBool, true)
+            } else {
+                let rhs = eval(second(data), env);
+                if (first(rhs) == ValBool) {
+                    rhs
+                } else {
+                    (ValErr, "and rhs operand not a bool: " + first(rhs))
+                }
+            }
+        } else {
+            (ValErr, "and lhs operand not a bool: " + first(lhs))
+        }
+    } else {
+
+    if (kind == ExpIf) {
+        let cond = first(data);
+        let blocks = second(data);
+        let then = first(blocks);
+        let otherwise = second(blocks);
+        let econd = eval(cond, env);
+        if (first(econd) == ValBool) {
+            if (second(econd)) {
+                eval(then, env)
+            } else {
+                eval(otherwise, env)
+            }
+        } else {
+            (ValErr, "condition not a bool: " + first(econd))
+        }
+
+    } else {
+
+    if (kind == ExpApp) {
+        let arg = eval(second(data), env);
+        let val_func = eval(first(data), env);
+        if (first(val_func) == ValFunc) {
+            let f = second(val_func);
+            let param = first(f);
+            let body = first(second(f));
+            let env2 = bind(param, arg, second(second(f)));
+            eval(body, env2)
+        }
+        else {
+            (ValErr, "calling a non-function value")
+        }
+    } else {
+
+    if (kind == ExpLambda) {
+        let param = first(data);
+        let body = second(data);
+        (ValFunc, (param, (body, env)))
+    } else {
+
+    if (kind == ExpLet) {
+        let var = first(data);
+        let value = first(second(data));
+
+        let rec = fn() => {
+            let rec_env = bind(var, (ValRec, rec), env);
+            eval(value, rec_env)
+        };
+
+        let env2 = bind(var, (ValRec, rec), env);
+        let evalue = eval(value, env2);
+        let env3 = bind(var, evalue, env);
+
+        let next = second(second(data));
+        eval(next, env3)
+    } else {
+
+    if (kind == ExpPrint) {
+        meta_print(eval(data, env))
+    } else {
+
+    if (kind == ExpFirst) {
+        let v = eval(data, env);
+        if (first(v) == ValTuple) {
+            first(second(v))
+        } else {
+            (ValErr, "(first) not a tuple: " + kind)
+        }
+    } else {
+
+    if (kind == ExpSecond) {
+        let v = eval(data, env);
+        if (first(v) == ValTuple) {
+            second(second(v))
+        } else {
+            (ValErr, "(second) not a tuple: " + kind)
+        }
+    }
+
+    else {
+        (ValErr, "exp malformed: " + kind)
+    }}}}}}}}}}}}}}}}}}}}}}}}}}
+};
+
+let prog = 
