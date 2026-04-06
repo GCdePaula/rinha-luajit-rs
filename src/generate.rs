@@ -7,11 +7,10 @@ const MAX_DEPTH: usize = 16;
 
 const PRELUDE: &str = r#"
 -- Prelude
--- local __to_bit = require "bit".tobit
+local __to_bit = require "bit".tobit
 
 local __buffer = require "string.buffer".new(1024)
 local __buffer_put = __buffer.put
--- local __buffer_put = function(_, x) print(x) end
 local __buffer_tostring = __buffer.tostring
 
 
@@ -221,31 +220,31 @@ fn generate_free_bin_op(code: &mut String, bin_op: &Binary) -> Result<(), Box<dy
         }
 
         BinaryOp::Sub => {
-            // write!(code, "__to_bit(")?;
+            write!(code, "__to_bit(")?;
             generate_free_term(code, &bin_op.lhs)?;
             write!(code, " - ")?;
             generate_free_term(code, &bin_op.rhs)?;
-            // write!(code, ") ")?;
+            write!(code, ") ")?;
 
             Ok(())
         }
 
         BinaryOp::Mul => {
-            // write!(code, "__to_bit(")?;
+            write!(code, "__to_bit(")?;
             generate_free_term(code, &bin_op.lhs)?;
             write!(code, " * ")?;
             generate_free_term(code, &bin_op.rhs)?;
-            // write!(code, ") ")?;
+            write!(code, ") ")?;
             Ok(())
         }
 
         BinaryOp::Div => {
-            // write!(code, "__to_bit(__floor(")?;
+            write!(code, "__to_bit(__floor(")?;
             write!(code, "__floor(")?;
             generate_free_term(code, &bin_op.lhs)?;
             write!(code, "/")?;
             generate_free_term(code, &bin_op.rhs)?;
-            // write!(code, ")) ")?;
+            write!(code, ")) ")?;
             write!(code, ") ")?;
             Ok(())
         }
@@ -337,14 +336,14 @@ fn generate_bin_op(
             if bin_op.rhs.binds {
                 let rhs = generate_binding(code, temps + 2)?;
                 generate_term(code, &bin_op.rhs, temps + 3, rhs.clone())?;
-                // writeln!(code, "{} = __to_bit({} - {})", bind, lhs, rhs)?;
-                writeln!(code, "{} = {} - {}", bind, lhs, rhs)?;
+                writeln!(code, "{} = __to_bit({} - {})", bind, lhs, rhs)?;
+                // writeln!(code, "{} = {} - {}", bind, lhs, rhs)?;
                 close_scope(code)?;
             } else {
-                // write!(code, "{} = __to_bit({} - ", bind, lhs)?;
-                write!(code, "{} = {} - ", bind, lhs)?;
+                write!(code, "{} = __to_bit({} - ", bind, lhs)?;
+                // write!(code, "{} = {} - ", bind, lhs)?;
                 generate_free_term(code, &bin_op.rhs)?;
-                // writeln!(code, ")")?;
+                writeln!(code, ")")?;
             }
 
             close_scope(code)?;
@@ -359,14 +358,14 @@ fn generate_bin_op(
             if bin_op.rhs.binds {
                 let rhs = generate_binding(code, temps + 2)?;
                 generate_term(code, &bin_op.rhs, temps + 3, rhs.clone())?;
-                // writeln!(code, "{} = __to_bit({} * {})", bind, lhs, rhs)?;
-                writeln!(code, "{} = {} * {}", bind, lhs, rhs)?;
+                writeln!(code, "{} = __to_bit({} * {})", bind, lhs, rhs)?;
+                // writeln!(code, "{} = {} * {}", bind, lhs, rhs)?;
                 close_scope(code)?;
             } else {
-                // write!(code, "{} = __to_bit({} * ", bind, lhs)?;
-                write!(code, "{} = {} * ", bind, lhs)?;
+                write!(code, "{} = __to_bit({} * ", bind, lhs)?;
+                // write!(code, "{} = {} * ", bind, lhs)?;
                 generate_free_term(code, &bin_op.rhs)?;
-                // writeln!(code, ")")?;
+                writeln!(code, ")")?;
             }
 
             close_scope(code)?;
@@ -381,15 +380,15 @@ fn generate_bin_op(
             if bin_op.rhs.binds {
                 let rhs = generate_binding(code, temps + 2)?;
                 generate_term(code, &bin_op.rhs, temps + 3, rhs.clone())?;
-                // writeln!(code, "{} = __to_bit(__floor({} / {}))", bind, lhs, rhs)?;
-                writeln!(code, "{} = __floor({} / {}))", bind, lhs, rhs)?;
+                writeln!(code, "{} = __to_bit(__floor({} / {}))", bind, lhs, rhs)?;
+                // writeln!(code, "{} = __floor({} / {}))", bind, lhs, rhs)?;
                 close_scope(code)?;
             } else {
-                // write!(code, "{} = __to_bit(__floor({} / ", bind, lhs)?;
-                write!(code, "{} = __floor({} / ", bind, lhs)?;
+                write!(code, "{} = __to_bit(__floor({} / ", bind, lhs)?;
+                // write!(code, "{} = __floor({} / ", bind, lhs)?;
                 generate_free_term(code, &bin_op.rhs)?;
-                // writeln!(code, "))")?;
-                writeln!(code, ")")?;
+                writeln!(code, "))")?;
+                // writeln!(code, ")")?;
             }
 
             close_scope(code)?;
@@ -592,7 +591,7 @@ fn generate_term(
         }
 
         Kind::Call(c) => {
-            if c.callee.binds || term.depth >= MAX_DEPTH {
+            if c.callee.binds {
                 let callee = generate_binding(code, temps + 1)?;
                 let temps = temps + 1;
                 generate_term(code, &c.callee, temps, callee.clone())?;
